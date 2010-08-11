@@ -1,4 +1,4 @@
-# Django settings for imagesearch project.
+# Django settings for askdorotka project.
 import os
 
 DEBUG = True
@@ -76,7 +76,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'imagesearch.urls'
+ROOT_URLCONF = 'askdorotka.urls'
 
 TEMPLATE_DIRS = (
     os.path.join(os.path.dirname(__file__), 'templates'),
@@ -91,7 +91,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
-    'imagesearch.gallery',
+    'askdorotka.gallery',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
 )

@@ -1,5 +1,5 @@
 from django.conf.urls.defaults import *
-from imagesearch.gallery.views import random_pic, random_gallery
+from askdorotka.gallery.views import random_pic, random_gallery
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin

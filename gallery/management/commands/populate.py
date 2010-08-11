@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from imagesearch.gallery.models import Annotation, AnnotationObject, AnnotationOwner
+from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner
 
 from xml.dom.minidom import parse
 import glob
