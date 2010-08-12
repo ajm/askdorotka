@@ -39,6 +39,7 @@ def start_search(request):
     e = Experiment()
     e.sessionid = request.session.session_key
     e.iterations = 0
+    e.finished = False
     e.target = target
     e.save()
     
@@ -76,12 +77,25 @@ def do_search(request, number, state):
     images = []
     for s in samp :
         images.append({ 'image': "/site_media/%s" % s.filename, \
-                        'link': "/search/%s/%s/" % (number, s.filename)})
+                        'link': "/search/%s/%s/" % (number, s.filename), \
+                        'finish' : "/finish/%s/" % s.filename })
     
     html = t.render(Context({'image_list' : images}))
     
     return HttpResponse(html)
 
+def good_enough(request, state) :
+    e = Experiment.objects.get(sessionid=request.session.session_key)
+    e.finished = True
 
+    ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
+    ei.selection = state
+    ei.save()
 
+    e.save()
+
+    t = get_template('finished.html')
+    html = t.render(Context({'target': '/site_media/' + e.target.filename, 'image' : '/site_media/' + state, 'iterations': e.iterations}))
+    
+    return HttpResponse(html)
 

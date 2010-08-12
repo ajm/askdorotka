@@ -1,48 +1,79 @@
-<html>
-    <head>
-        <style type="text/css">
-            div.img {
-                margin: 2px;
-                border: 0px solid #000000;
-                height: auto;
-                width: auto;
-                float: left;
-                text-align: center;
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+    <head> 
+        <title>gallery</title> 
+        <style type="text/css"> 
+            body {
+                font: 85%/150% Arial, Helvetica, sans-serif;
+                width: 900px;
+                margin: 0 auto;
             }
-
-            div.img img {
-                display: inline;
-                margin: 3px;
-                border: 1px solid #ffffff;
-            }
-
-            div.img a:hover img {
-                border: 1px solid #000000;
-            }
-
-            div.desc {
-                text-align: left;
-                font-weight: normal;
-                font-family: helvetica;
-                width: 200px;
-                margin: 4px;
-            }
-
-        </style>
-    </head>
-    
-    <body>
-        
-        <div class="img">
-            <img src="{{ image }}" alt="target image" height="250" />
-            <div class="desc">
-            <h3>Find this picture<h3>
             
-            <form action="/search/6/start" method="get">
-                <input type="submit" value="let's go!">
-            </form>
-            </div>
-        </div>
-    </body>
-</html>
+            img {
+                border: none;
+                width: 400px;
+                height: auto;
+            }
+            
+            a {
+                text-decoration: none;
+                color: #808080;
+            }
+            
+            a:hover {
+                color: #000;
+            }
+            
+            h2 {
+                margin: 40px 0 15px;
+            }
+            
+            .block {
+                width: 400px;
+                height: auto;
+                padding: 5px;
+                border: solid 1px #ccc;
+                position: relative;
+                margin-right: 10px;
+                float: left;
+            }
+            
+            .block p {
+                margin: 0;
+            }
+            
+            .links {
+                text-align: center;
+                background: #faf0e6;
+                border: solid 1px #d2b48c;
+                width: 90%;
+                padding: 5px 0;
+                position: absolute;
+                bottom: 20px;
+                left: 5%;
+                display: none;
+            }
+            
+            .block:hover .links {
+                display: block;
+            }
+        </style> 
+    </head> 
+    <body>
 
+        <h2>Welcome to Image Search</h2> 
+
+        <p>Blurb about search paradigm.<br />Use this search engine to find an image that looks similar to the image below.</p> 
+
+        <p>
+            <form action="/search/6/start" method="get">
+                <input type="submit" value="Let's go!">
+            </form>
+        </p>
+
+         <div class="block"> 
+            <p><img src="{{ image }}" alt="target image" /></p>
+        </div>
+
+    </body> 
+</html> 

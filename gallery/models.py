@@ -47,6 +47,7 @@ class AnnotationObject(models.Model) :
 class Experiment(models.Model) :
     sessionid = models.CharField(max_length=LEN)
     target = models.ForeignKey(Annotation)
+    finished = models.BooleanField()
     iterations = models.PositiveIntegerField()
 
     def __unicode__(self) :
