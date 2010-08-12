@@ -10,7 +10,6 @@ class AnnotationOwner(models.Model) :
     def __unicode__(self):
         return u'AnnotationOwner: %s %s' % (self.flickrid, self.name)
 
-
 class Annotation(models.Model) :
     filename = models.CharField(max_length=LEN)
     folder = models.CharField(max_length=LEN)
@@ -42,5 +41,23 @@ class AnnotationObject(models.Model) :
     parent_annotation = models.ForeignKey(Annotation)
 
     def __unicode__(self):
-        return u'AnnotationObject: %s %s %d %d %d %d' % (self.name, self.pose, self.xmin, self.xmax, self.ymin, self.ymax)
+        return u'AnnotationObject: %s %s %d %d %d %d' % \
+            (self.name, self.pose, self.xmin, self.xmax, self.ymin, self.ymax)
+
+class Experiment(models.Model) :
+    sessionid = models.CharField(max_length=LEN)
+    target = models.ForeignKey(Annotation)
+    iterations = models.PositiveIntegerField()
+
+    def __unicode__(self) :
+        return u'Experiment: %s %s' % (self.sessionid, self.target.filename)
+    
+class ExperimentInfo(models.Model) :
+    experiment = models.ForeignKey(Experiment)
+    iteration = models.PositiveIntegerField()
+    selection = models.CharField(max_length=LEN)
+    options = models.ManyToManyField(Annotation)
+    
+    def __unicode__(self):
+        return u'ExperimentInfo: %d %s' % (self.iteration, self.selection)
 

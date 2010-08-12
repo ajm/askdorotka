@@ -30,18 +30,19 @@
 
         </style>
     </head>
-
-    <body>
     
-        {% for img in image_list %}
+    <body>
         
         <div class="img">
-            <a href="{{ img.link }}"><img src="{{ img.image }}" alt="" height="250" /></a>
-            <div class="desc">debug: XYZ</div>
+            <img src="{{ image }}" alt="target image" height="250" />
+            <div class="desc">
+            <h3>Find this picture<h3>
+            
+            <form action="/search/6/start" method="get">
+                <input type="submit" value="let's go!">
+            </form>
+            </div>
         </div>
-        
-        {% endfor %}
-    
     </body>
 </html>
 

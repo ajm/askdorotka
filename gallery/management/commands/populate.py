@@ -2,10 +2,10 @@ from django.core.management.base import BaseCommand, CommandError
 from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner
 
 from xml.dom.minidom import parse
-import glob
+import glob, os
 
 class Command(BaseCommand) :
-    args = ''
+    args = '<directory containing xml annotations>'
     help = 'populates database with content of XML files'
 
     def process_annotation(self, ele) :
@@ -270,8 +270,12 @@ class Command(BaseCommand) :
     
     
     def handle(self, *args, **options) :
-        path = '/Users/ajm/Annotations/'
-        xmlfiles = glob.glob(path + '*.xml')
+        if len(args) != 1 :
+            raise CommandError("populate command needs xml dir as argument")
+
+        path = args[0]
+
+        xmlfiles = glob.glob(os.path.join(path, '*.xml'))
         for filename in xmlfiles :
             print "processing: %s" % filename
 
