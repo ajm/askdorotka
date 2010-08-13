@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
-from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner
+from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner, AnnotationFeature, AnnotationDistance
 
 from xml.dom.minidom import parse
-import glob, os
+import glob, os, math
 
 class Command(BaseCommand) :
     args = '<directory containing xml annotations>'
@@ -55,7 +55,7 @@ class Command(BaseCommand) :
                     a.segmented = True
 
             elif c.nodeName == 'object' :
-                objects.append( self.process_object(c) )
+                objects += self.process_object(c)
 
             else :
                 raise CommandError('could not process node of type: %s' % c.nodeName)
@@ -78,8 +78,31 @@ class Command(BaseCommand) :
 
         for o in objects :
             o.parent_annotation = a
+            o.area = (o.xmax - o.xmin) * (o.ymax - o.ymin)
             o.save()
 #            print str(o)
+
+        self.normalise(a, objects)
+
+    def normalise(self, annot, objs) :
+        total = {}
+        labels = list(set(map(lambda x : x.name, objs)))
+        #labels = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','food','hand','head','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor'] :
+        for i in labels :
+            total[i] = 0
+
+        for o in objs :
+            total[o.name] += o.area
+            
+        fac = math.sqrt(float(sum(map(lambda x : x ** 2, total.values()))))
+
+        for k,v in total.iteritems() :
+            if v != 0 :
+                a = AnnotationFeature()
+                a.name = k
+                a.value = v / fac
+                a.parent = annot
+                a.save()
 
     def process_object(self, ele) :
         err = False
@@ -148,7 +171,9 @@ class Command(BaseCommand) :
             if err :
                 raise CommandError('%s node was of length %d' % (c.nodeName, len(c.childNodes)))
 
-        return a
+        parts.append(a)
+
+        return parts
     
     def process_owner(self, ele) :
         err = False
@@ -182,7 +207,31 @@ class Command(BaseCommand) :
         pass
 
     def process_part(self, ele) :
-        pass
+        children = [e for e in ele.childNodes if e.nodeType == e.ELEMENT_NODE]
+        a = AnnotationObject()
+        err = False
+
+        for c in children :
+            if c.nodeName == 'name' :
+                if len(c.childNodes) != 1 :
+                    err = True
+                    break
+                a.name = c.childNodes[0].nodeValue
+
+            elif c.nodeName == 'bndbox' :
+                xmin,xmax,ymin,ymax = self.process_bndbox(c)
+                a.xmin = xmin
+                a.xmax = xmax
+                a.ymin = ymin
+                a.ymax = ymax
+
+            else :
+                raise CommandError('could not process node of type: %s' % c.nodeName)
+
+            if err :
+                raise CommandError('%s node was of length %d' % (c.nodeName, len(c.childNodes)))
+
+        return a
 
     def process_size(self, ele) :
         err = False
@@ -268,6 +317,35 @@ class Command(BaseCommand) :
 
         return xmin,xmax,ymin,ymax
     
+    def featuredict(self, annotation) :
+        d = {}
+        for f in AnnotationFeature.objects.filter(parent=annotation) :
+            d[f.name] = f
+
+        return d
+
+    def calc_distance(self, annotation1, annotation2) :
+        features1 = self.featuredict(annotation1)
+        features2 = self.featuredict(annotation2)
+
+        total = 0.0
+        for k in set(features1.keys() + features2.keys()) :
+            f1 = features1.get(k)
+            f2 = features2.get(k)
+
+            if f1 == None :
+                x = 0.0
+            else :
+                x = f1.value
+
+            if f2 == None :
+                y = 0.0
+            else :
+                y = f2.value
+
+            total += ((x - y) ** 2)
+
+        return total
     
     def handle(self, *args, **options) :
         if len(args) != 1 :
@@ -276,11 +354,30 @@ class Command(BaseCommand) :
         path = args[0]
 
         xmlfiles = glob.glob(os.path.join(path, '*.xml'))
-        for filename in xmlfiles :
+        for filename in xmlfiles[:500] :
             print "processing: %s" % filename
 
             f = open(filename)
             doc = parse(f).documentElement
             
             self.process_annotation(doc)
+
+        return 
+        # build distance cache
+        a = Annotation.objects.all()
+        for i in range(len(a)) :
+            print "%s" % a[i].filename
+            for j in range(i+1, len(a)) :
+                d = self.calc_distance(a[i],a[j])
+                a1 = AnnotationDistance()
+                a1.src = a[i].filename
+                a1.dst = a[j].filename
+                a1.distance = d
+                a1.save()
+                a2 = AnnotationDistance()
+                a2.src = a[j].filename
+                a2.dst = a[i].filename
+                a2.distance = d
+                a2.save()
+                print "\t%s --> %s = %f (%s)" % (a[i].filename, a[j].filename, d, str(d == 0.0))
 

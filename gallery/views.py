@@ -41,26 +41,33 @@ def start_search(request):
     e.iterations = 0
     e.finished = False
     e.target = target
+    e.number_of_images = 2
     e.save()
     
     html = t.render(Context({'image' : '/site_media/' + target.filename}))
     
     return HttpResponse(html)
 
-def do_search(request, number, state):
-    e = Experiment.objects.get(sessionid=request.session.session_key)
-#    html = "<html><body><p>looking for %s</p></body></html>" % e.target.filename
-#    return HttpResponse(html)
-
-    if state != 'start' :
+def do_search(request, state):
+    try :
+        e = Experiment.objects.get(sessionid=request.session.session_key)
+    except :
+        t = get_template('bad_session.html')
+        html = t.render(Context({ 'sessionid' : request.session.session_key }))
+        return HttpResponse(html)
+    
+    if state == 'start' :
+        e.number_of_images = int(request.GET['num'])
+    #if state != 'start' :
+    else :
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
         ei.selection = state
         ei.save()
-        print "saved %s" % state
 
+    number = e.number_of_images
     t = get_template('gallery.html')
     objs = Annotation.objects.all()
-    samp = random.sample(objs, int(number))
+    samp = random.sample(objs, number)
 
     ei = ExperimentInfo()
     ei.experiment = e
@@ -77,7 +84,7 @@ def do_search(request, number, state):
     images = []
     for s in samp :
         images.append({ 'image': "/site_media/%s" % s.filename, \
-                        'link': "/search/%s/%s/" % (number, s.filename), \
+                        'link': "/search/%s/" % (s.filename), \
                         'finish' : "/finish/%s/" % s.filename })
     
     html = t.render(Context({'image_list' : images}))
@@ -85,7 +92,13 @@ def do_search(request, number, state):
     return HttpResponse(html)
 
 def good_enough(request, state) :
-    e = Experiment.objects.get(sessionid=request.session.session_key)
+    try :
+        e = Experiment.objects.get(sessionid=request.session.session_key)
+    except :
+        t = get_template('bad_session.html')
+        html = t.render(Context({ 'sessionid' : request.session.session_key }))
+        return HttpResponse(html)
+ 
     e.finished = True
 
     ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)

@@ -66,7 +66,19 @@
         <p>Blurb about search paradigm.<br />Use this search engine to find an image that looks similar to the image below.</p> 
 
         <p>
-            <form action="/search/6/start" method="get">
+            <form action="/search/start" method="get">
+                How many images to show each iteration:
+                <select name="num">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
                 <input type="submit" value="Let's go!">
             </form>
         </p>

@@ -17,7 +17,7 @@ urlpatterns = patterns('',
     (r'^accounts/login/$', login),
     (r'^accounts/logout/$', logout),
     (r'^start/$', start_search),
-    (r'^search/(\d{1,2})/(.*)/$', do_search),
+    (r'^search/(.*)/$', do_search),
     (r'^finish/(.*)/$', good_enough),
     # Example:
     # (r'^imagesearch/', include('imagesearch.foo.urls')),

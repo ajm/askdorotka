@@ -39,14 +39,32 @@ class AnnotationObject(models.Model) :
     xmax = models.FloatField()
     ymax = models.FloatField()
     parent_annotation = models.ForeignKey(Annotation)
+    area = models.FloatField()
 
     def __unicode__(self):
         return u'AnnotationObject: %s %s %d %d %d %d' % \
             (self.name, self.pose, self.xmin, self.xmax, self.ymin, self.ymax)
 
+class AnnotationFeature(models.Model) :
+    name = models.CharField(max_length=LEN)
+    value = models.FloatField()
+    parent = models.ForeignKey(Annotation)
+
+    def __unicode__(self):
+        return u'AnnotationFeature: %s %f %s' % (self.name, self.value, self.parent)
+
+class AnnotationDistance(models.Model) :
+    src = models.CharField(max_length=LEN)
+    dst = models.CharField(max_length=LEN)
+    distance = models.FloatField()
+    
+    def __unicode__(self):
+        return u'AnnotationDistance: %s %s %d' % (self.src, self.dst, self.distance)
+
 class Experiment(models.Model) :
     sessionid = models.CharField(max_length=LEN)
     target = models.ForeignKey(Annotation)
+    number_of_images = models.PositiveIntegerField()
     finished = models.BooleanField()
     iterations = models.PositiveIntegerField()
 
