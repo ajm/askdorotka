@@ -53,6 +53,7 @@ class AnnotationFeature(models.Model) :
     def __unicode__(self):
         return u'AnnotationFeature: %s %f %s' % (self.name, self.value, self.parent)
 
+# not used
 class AnnotationDistance(models.Model) :
     src = models.CharField(max_length=LEN)
     dst = models.CharField(max_length=LEN)
@@ -70,7 +71,7 @@ class Experiment(models.Model) :
 
     def __unicode__(self) :
         return u'Experiment: %s %s' % (self.sessionid, self.target.filename)
-    
+
 class ExperimentInfo(models.Model) :
     experiment = models.ForeignKey(Experiment)
     iteration = models.PositiveIntegerField()
@@ -79,4 +80,12 @@ class ExperimentInfo(models.Model) :
     
     def __unicode__(self):
         return u'ExperimentInfo: %d %s' % (self.iteration, self.selection)
+
+class ExperimentBaseMeasure(models.Model) :
+    experiment = models.ForeignKey(Experiment)
+    name = models.CharField(max_length=LEN)
+    value = models.FloatField()
+
+    def __unicode__(self) :
+        return u'ExperimentBaseMeasure: %s %s %f' % (self.experiment.sessionid, self.name, self.value)
 
