@@ -111,15 +111,19 @@ def do_search(request, state):
 
     if state == 'start' :
         e.number_of_images = int(request.GET['num'])
-        request.session['debug'] = request.GET.get('debug', 0)
-        request.session['random'] = request.GET.get('random', 0)
-    elif state == 'ignore' or state == 'random' :
+        e.random = request.GET.get('random', "0") == "1"
+        request.session['debug'] = bool(int(request.GET.get('debug', 0)))
+        request.session['random'] = bool(int(request.GET.get('random', 0)))
+    elif state == 'ignore' :
         pass
     else :
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
         ei.selection = state
         ei.save()
 
+    if (state != 'start') and not request.session['random'] :
+        ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
+        
         index = 0
         for i in ei.options.all() :
             if i.filename == ei.selection :
@@ -170,9 +174,6 @@ def do_search(request, state):
     
     # 4a. update dirchlet distribution base measures 
     #basemeasures = ExperimentBaseMeasure.objects.filter(experiment=e)
-    #for bm in basemeasures :
-    #    bm.value *= e.count
-    #    bm.save()
     for i in range(len(basemeasures)) :
         basemeasures[i] *= e.count
     request.session['basemeasures'] = basemeasures
@@ -190,7 +191,8 @@ def do_search(request, state):
                 break
     
     # old
-    #samp = random.sample(objs, k)
+    if request.session['random'] :
+        samp = random.sample(objs, k)
 
     ei = ExperimentInfo()
     ei.experiment = e
