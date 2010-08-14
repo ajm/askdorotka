@@ -82,9 +82,19 @@ class Command(BaseCommand) :
             o.save()
 #            print str(o)
 
-        self.normalise(a, objects)
+        self.normalise2(a, objects)
 
-    def normalise(self, annot, objs) :
+    def normalise2(self, annot, objs) :
+        area = float(annot.width * annot.height)
+        
+        for o in objs :
+            a = AnnotationFeature()
+            a.name = o.name
+            a.parent = annot
+            a.value = o.area / area
+            a.save()
+
+    def normalise1(self, annot, objs) :
         total = {}
         labels = list(set(map(lambda x : x.name, objs)))
         #labels = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','food','hand','head','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor'] :
