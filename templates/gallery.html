@@ -63,7 +63,8 @@
 
         <h2>Image Search</h2> 
 
-        <p>Hover your mouse pointer over the closest image to the kind of thing you are searching for. <br />Click on "Next" to see similar images or "This one!" to terminate your search.</p>
+        <p>Hover your mouse pointer over the closest image to the kind of thing you are searching for. <br />Click on <b>"Next"</b> to see similar images or <b>"This one!"</b> to terminate your search.</p>
+        <p>If none of the images is suitable, then you can <a href="/search/ignore/">ignore this round</a>.</p>
         <p>Alternately, you could <a href="/start">restart</a> your search.</p> 
 
         {% for img in image_list %}
@@ -72,8 +73,8 @@
             <p><img src="{{ img.image }}" alt="" /></p> 
             <p class="links"><a href="{{ img.link }}">Next</a> | <a href="{{ img.finish }}">This one!</a></p> 
         </div>
-
+        
         {% endfor %}
-    
+        
     </body> 
 </html> 

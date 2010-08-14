@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner, AnnotationFeature, AnnotationDistance
 
 from xml.dom.minidom import parse
-import glob, os, math
+import glob, os, math, copy
 
 class Command(BaseCommand) :
     args = '<directory containing xml annotations>'
@@ -107,6 +107,7 @@ class Command(BaseCommand) :
     def process_object(self, ele) :
         err = False
         parts = []
+        tmp = None
         a = AnnotationObject()
         children = [e for e in ele.childNodes if e.nodeType == e.ELEMENT_NODE]
 
@@ -124,6 +125,7 @@ class Command(BaseCommand) :
                     break
 
                 pose = c.childNodes[0].nodeValue
+                tmp = pose
                 if pose == 'Left' :
                     a.pose = 'L'
                 elif pose == 'Right' :
@@ -171,7 +173,11 @@ class Command(BaseCommand) :
             if err :
                 raise CommandError('%s node was of length %d' % (c.nodeName, len(c.childNodes)))
 
+        # treat pose as first-class feature
+        p = copy.copy(a)
+        p.name = tmp
         parts.append(a)
+        parts.append(p)
 
         return parts
     
@@ -320,7 +326,7 @@ class Command(BaseCommand) :
     def featuredict(self, annotation) :
         d = {}
         for f in AnnotationFeature.objects.filter(parent=annotation) :
-            d[f.name] = f
+            d[f.name] = f.value
 
         return d
 
@@ -330,20 +336,10 @@ class Command(BaseCommand) :
 
         total = 0.0
         for k in set(features1.keys() + features2.keys()) :
-            f1 = features1.get(k)
-            f2 = features2.get(k)
+            f1 = features1.get(k, 0.0)
+            f2 = features2.get(k, 0.0)
 
-            if f1 == None :
-                x = 0.0
-            else :
-                x = f1.value
-
-            if f2 == None :
-                y = 0.0
-            else :
-                y = f2.value
-
-            total += ((x - y) ** 2)
+            total += ((f1 - f2) ** 2)
 
         return total
     
@@ -354,7 +350,7 @@ class Command(BaseCommand) :
         path = args[0]
 
         xmlfiles = glob.glob(os.path.join(path, '*.xml'))
-        for filename in xmlfiles[:500] :
+        for filename in xmlfiles :
             print "processing: %s" % filename
 
             f = open(filename)

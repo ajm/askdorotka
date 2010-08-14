@@ -63,11 +63,16 @@ class AnnotationDistance(models.Model) :
         return u'AnnotationDistance: %s %s %d' % (self.src, self.dst, self.distance)
 
 class Experiment(models.Model) :
+    # web variables
     sessionid = models.CharField(max_length=LEN)
+    # experiment variables
     target = models.ForeignKey(Annotation)
     number_of_images = models.PositiveIntegerField()
     finished = models.BooleanField()
     iterations = models.PositiveIntegerField()
+    # dirchlet variables
+    alpha = models.PositiveIntegerField()
+    count = models.PositiveIntegerField()
 
     def __unicode__(self) :
         return u'Experiment: %s %s' % (self.sessionid, self.target.filename)
@@ -83,7 +88,7 @@ class ExperimentInfo(models.Model) :
 
 class ExperimentBaseMeasure(models.Model) :
     experiment = models.ForeignKey(Experiment)
-    name = models.CharField(max_length=LEN)
+    name = models.ForeignKey(Annotation)
     value = models.FloatField()
 
     def __unicode__(self) :
