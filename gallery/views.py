@@ -73,11 +73,20 @@ def featuredict(annotation) :
 
     return d
 
-def calc_distance(features1, features2) :
-#def calc_distance(annotation1, annotation2) :
-    #features1 = featuredict(annotation1)
-    #features2 = featuredict(annotation2)
+def calc_distance2(annotation1, annotation2) :
+    features1 = featuredict(annotation1)
+    features2 = featuredict(annotation2)
     
+    total = 0.0
+    for k in set(features1.keys() + features2.keys()) :
+        f1 = features1.get(k, 0.0)
+        f2 = features2.get(k, 0.0)
+    
+        total += ((f1 - f2) ** 2)
+    
+    return total
+
+def calc_distance(features1, features2) :
     total = 0.0
     for k in set(features1.keys() + features2.keys()) :
         f1 = features1.get(k, 0.0)
@@ -102,6 +111,7 @@ def do_search(request, state):
 
     if state == 'start' :
         e.number_of_images = int(request.GET['num'])
+        request.session['debug'] = request.GET.get('debug', 0)
     elif state == 'ignore' :
         pass
     else :
@@ -195,12 +205,13 @@ def do_search(request, state):
 
     images = []
     for s in samp :
-        images.append({ 'image': "/site_media/%s" % s.filename, \
-                        'link': "/search/%s/" % (s.filename), \
-                        'finish' : "/finish/%s/" % s.filename
+        images.append({ 'image': "/site_media/%s" % s.filename,
+                        'link': "/search/%s/" % (s.filename),
+                        'finish' : "/finish/%s/" % s.filename,
+                        'distance' : str(calc_distance2(s, e.target))
                         })
     
-    html = t.render(Context({'image_list' : images}))
+    html = t.render(Context({'image_list' : images, 'debug' : request.session['debug']}))
     
     return HttpResponse(html)
 

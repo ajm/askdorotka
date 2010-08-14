@@ -71,7 +71,11 @@
 
         <div class="block"> 
             <p><img src="{{ img.image }}" alt="" /></p> 
-            <p class="links"><a href="{{ img.link }}">Next</a> | <a href="{{ img.finish }}">This one!</a></p> 
+            <p class="links"><a href="{{ img.link }}">Next</a> | <a href="{{ img.finish }}">This one!</a>
+            {% if debug %}
+            <br/>{{ img.distance }}
+            {% endif %}
+            </p> 
         </div>
         
         {% endfor %}
