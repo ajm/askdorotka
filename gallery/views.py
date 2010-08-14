@@ -112,7 +112,8 @@ def do_search(request, state):
     if state == 'start' :
         e.number_of_images = int(request.GET['num'])
         request.session['debug'] = request.GET.get('debug', 0)
-    elif state == 'ignore' :
+        request.session['random'] = request.GET.get('random', 0)
+    elif state == 'ignore' or state == 'random' :
         pass
     else :
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
@@ -211,7 +212,7 @@ def do_search(request, state):
                         'distance' : str(calc_distance2(s, e.target))
                         })
     
-    html = t.render(Context({'image_list' : images, 'debug' : request.session['debug']}))
+    html = t.render(Context({'image_list' : images, 'debug' : request.session['debug'], 'random' : request.session['random'] }))
     
     return HttpResponse(html)
 
