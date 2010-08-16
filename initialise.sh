@@ -19,7 +19,7 @@ echo
 echo "copying images: this might take a while..."
 #rm -rf images
 #cp -r $1/VOC2007/JPEGImages images
-touch images/place_images_here
+#touch images/place_images_here
 
 echo
 echo "done"

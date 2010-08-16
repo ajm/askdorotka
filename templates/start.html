@@ -1,70 +1,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
 <html xmlns="http://www.w3.org/1999/xhtml"> 
     <head> 
-        <title>gallery</title> 
-        <style type="text/css"> 
-            body {
-                font: 85%/150% Arial, Helvetica, sans-serif;
-                width: 900px;
-                margin: 0 auto;
-            }
-            
-            img {
-                border: none;
-                width: 400px;
-                height: auto;
-            }
-            
-            a {
-                text-decoration: none;
-                color: #808080;
-            }
-            
-            a:hover {
-                color: #000;
-            }
-            
-            h2 {
-                margin: 40px 0 15px;
-            }
-            
-            .block {
-                width: 400px;
-                height: auto;
-                padding: 5px;
-                border: solid 1px #ccc;
-                position: relative;
-                margin-right: 10px;
-                float: left;
-            }
-            
-            .block p {
-                margin: 0;
-            }
-            
-            .links {
-                text-align: center;
-                background: #faf0e6;
-                border: solid 1px #d2b48c;
-                width: 90%;
-                padding: 5px 0;
-                position: absolute;
-                bottom: 20px;
-                left: 5%;
-                display: none;
-            }
-            
-            .block:hover .links {
-                display: block;
-            }
-        </style> 
-    </head> 
+        <title>gallery</title>
+		<link href="/site_media/common.css" rel="stylesheet" type="text/css">
+    </head>
+	
     <body>
-
         <h2>Welcome to Image Search</h2> 
-
+		
         <p>Blurb about search paradigm.<br />Use this search engine to find an image that looks similar to the image below.</p> 
-
+		
         <p>
             <form action="/search/start" method="get">
                 How many images to show each iteration:
@@ -87,10 +32,10 @@
                 <input type="checkbox" name="random" value="1">Random mode (do not use dirchlet algorithm)</input>
             </form>
         </p>
-
-         <div class="block"> 
+		
+		<div class="block"> 
             <p><img src="{{ image }}" alt="target image" /></p>
         </div>
-
+		
     </body> 
 </html> 

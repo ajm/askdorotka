@@ -2,7 +2,6 @@ from django.db import models
 
 LEN = 128
 
-# Create your models here.
 class AnnotationOwner(models.Model) :
     flickrid = models.CharField(max_length=LEN)
     name = models.CharField(max_length=LEN)
@@ -53,15 +52,6 @@ class AnnotationFeature(models.Model) :
     def __unicode__(self):
         return u'AnnotationFeature: %s %f %s' % (self.name, self.value, self.parent)
 
-# not used
-class AnnotationDistance(models.Model) :
-    src = models.CharField(max_length=LEN)
-    dst = models.CharField(max_length=LEN)
-    distance = models.FloatField()
-    
-    def __unicode__(self):
-        return u'AnnotationDistance: %s %s %d' % (self.src, self.dst, self.distance)
-
 class Experiment(models.Model) :
     # web variables
     sessionid = models.CharField(max_length=LEN)
@@ -74,7 +64,7 @@ class Experiment(models.Model) :
     # dirchlet variables
     alpha = models.PositiveIntegerField()
     count = models.PositiveIntegerField()
-
+    
     def __unicode__(self) :
         return u'Experiment: %s %s' % (self.sessionid, self.target.filename)
 
@@ -86,12 +76,4 @@ class ExperimentInfo(models.Model) :
     
     def __unicode__(self):
         return u'ExperimentInfo: %d %s' % (self.iteration, self.selection)
-
-class ExperimentBaseMeasure(models.Model) :
-    experiment = models.ForeignKey(Experiment)
-    name = models.ForeignKey(Annotation)
-    value = models.FloatField()
-
-    def __unicode__(self) :
-        return u'ExperimentBaseMeasure: %s %s %f' % (self.experiment.sessionid, self.name, self.value)
 

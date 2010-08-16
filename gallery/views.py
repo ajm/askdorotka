@@ -1,8 +1,8 @@
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.template import Context
-from gallery.models import Annotation, AnnotationOwner, AnnotationObject, Experiment, ExperimentInfo, ExperimentBaseMeasure, AnnotationFeature
-import random, math
+from gallery.models import Annotation, AnnotationOwner, AnnotationObject, Experiment, ExperimentInfo, AnnotationFeature
+import random, math, time
 
 def random_pic(request, feature) :
     all = AnnotationObject.objects.filter(name=feature)
@@ -34,35 +34,53 @@ def start_search(request):
     objs = Annotation.objects.all()
     
     # 2. select an image to show to the user
-    target = random.choice(objs)
+    target_img = random.choice(objs)
     
     request.session.flush()
     
-    e = Experiment()
-    e.sessionid = request.session.session_key
-    e.iterations = 0
-    e.finished = False
-    e.target = target
-    e.number_of_images = 2
-    e.alpha = 100
-    e.count = e.alpha
+    e = Experiment(
+            sessionid=request.session.session_key,
+            iterations=0,
+            finished=False,
+            target=target_img,
+            number_of_images=2,
+            alpha=100,
+            count=100
+            )
+    e.save()
+    
+    # 3. initialise variables in dirchlet distribution
+    request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
+    
+    html = t.render(Context({'image' : '/site_media/' + target_img.filename}))
+    return HttpResponse(html)
+
+def bad_session(request) :
+    t = get_template('bad_session.html')
+    html = t.render(Context({ 
+                        'sessionid' : request.session.session_key 
+                    }))
+    return HttpResponse(html)
+
+def good_enough(request, state) :
+    try :
+        e = Experiment.objects.get(sessionid=request.session.session_key)
+    except :
+        return bad_session(request)
+    
+    e.finished = True
     e.save()
 
-    # 3. initialise variables in dirchlet distribution (ExperimentBaseMeasure objects)
-    val = 1 / float(len(objs))
-#    for o in objs :
-#        i = ExperimentBaseMeasure()
-#        i.experiment = e
-#        i.name = o
-#        i.value = val
-#        i.save()
-    x = []
-    for i in range(len(objs)):
-        x.append(val)
-    request.session['basemeasures'] = x
-    
-    
-    html = t.render(Context({'image' : '/site_media/' + target.filename}))
+    ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
+    ei.selection = state
+    ei.save()
+
+    t = get_template('finished.html')
+    html = t.render(Context({
+                        'target': '/site_media/' + e.target.filename, 
+                        'image' : '/site_media/' + state, 
+                        'iterations': e.iterations
+                    }))
     
     return HttpResponse(html)
 
@@ -97,115 +115,108 @@ def calc_distance(features1, features2) :
     return total
 
 def do_search(request, state):
+    start_search = time.time()
     objs = Annotation.objects.all()
     
     try :
         e = Experiment.objects.get(sessionid=request.session.session_key)
     except :
-        t = get_template('bad_session.html')
-        html = t.render(Context({ 'sessionid' : request.session.session_key }))
-        return HttpResponse(html)
+        return bad_session(request)
     
-    #basemeasures = ExperimentBaseMeasure.objects.filter(experiment=e)
     basemeasures = request.session['basemeasures']
 
+    # this is the first time that do_search has been called
+    # for the current session id
     if state == 'start' :
         e.number_of_images = int(request.GET['num'])
         e.random = request.GET.get('random', "0") == "1"
         request.session['debug'] = bool(int(request.GET.get('debug', 0)))
         request.session['random'] = bool(int(request.GET.get('random', 0)))
+    # none of the images were suitable, so ignore the last
+    # round
     elif state == 'ignore' :
         pass
+    # everything else, random or dirchlet...
     else :
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
         ei.selection = state
         ei.save()
-
-    if (state != 'start') and not request.session['random'] :
-        ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
         
-        index = 0
-        for i in ei.options.all() :
-            if i.filename == ei.selection :
-                break
-            index += 1
-
-        print "[i] %d %s" % (index, i.filename)
-        
-        # 5. calculate distance from all images show to all images in database
-        print "start caching features"
-        features = {}
-        for i in ei.options.all() :
-            features[i] = featuredict(i)
-        allfeatures = {}
-        for i in objs :
-            allfeatures[i] = featuredict(i)
-        print "finish caching features"
-        
-        distances = {}
-        print "start distance calculations"
-        for i in objs :
-            #print i.filename
-            distances[i] = map(lambda x : calc_distance(allfeatures[i], features[x]) , ei.options.all())
-        print "finish distance calculations"
-
-        # 6. find minimum of each images in dataset to shown images
-        count = 0
-        for i in distances :
-            m = min(distances[i])
-            # 7a. update base measures of closest images to user selected by 1
-            #     update count by 1
-            if distances[i][index] == m :
-                #b = basemeasures.get(name=i)
-                #b.value += 1
-                #b.save()
-                basemeasures[count] += 1
-                e.count += 1
-            count += 1
-
-        # 7b. renormalise basemeasures
-        #for bm in basemeasures :
-        #    bm.value /= e.count
-        for i in range(len(basemeasures)) :
-            basemeasures[i] /= e.count
-
+        if not request.session['random'] :
+            # 5. calculate distance from all images show to all images in database
+            feature_cache = {}
+            start_time = time.time()
+            for i in objs :
+                feature_cache[i] = featuredict(i)
+            print "\tcaching features: %d seconds" % (int(time.time() - start_time))
+            
+            distances = {}
+            start_time = time.time()
+            for i in objs :
+                distances[i] = map(lambda x : calc_distance(feature_cache[i], feature_cache[x]) , ei.options.all())
+            print "\tdistance calculations: %d seconds" % (int(time.time() - start_time))
+            
+            
+            # 6. find minimum of each images in dataset to shown images
+            index = map(lambda x : x.filename, ei.options.all()).index(ei.selection)
+            count = 0
+            for i in distances :
+                m = min(distances[i])
+                # 7a. update base measures of closest images to user selected by 1
+                #     update count by 1
+                if distances[i][index] == m :
+                    basemeasures[count] += 1
+                    e.count += 1
+                count += 1
+            
+            # 7b. renormalise basemeasures
+            #basemeasures = map(lambda x : x / e.count, basemeasures)
+            request.session['basemeasures'] = basemeasures   
+    
+    ######################################################
+    #  select images to be displayed for the next round  #
+    ######################################################
     k = e.number_of_images
-    t = get_template('gallery.html')
-    
-    # 4a. update dirchlet distribution base measures 
-    #basemeasures = ExperimentBaseMeasure.objects.filter(experiment=e)
-    for i in range(len(basemeasures)) :
-        basemeasures[i] *= e.count
-    request.session['basemeasures'] = basemeasures
 
-    # 4b. select k images to show user
-    samp = []
-    for i in range(k) :
-        #z = map(lambda x : random.gammavariate(x.value, 1), basemeasures)
-        z = map(lambda x : random.gammavariate(x, 1), basemeasures)
-        zprime = map(lambda x : (z[x], x), range(len(z)))
-        zprime.sort(reverse=True)
-        for gv,index in zprime :
-            if objs[index] not in samp :
-                samp.append(objs[index])
-                break
-    
-    # old
     if request.session['random'] :
         samp = random.sample(objs, k)
+    
+    else :
+        # 4a. update dirchlet distribution base measures 
+        #basemeasures = map(lambda x : x * e.count, basemeasures) # this just undoes line 173 (dorota knows)
+        #request.session['basemeasures'] = basemeasures
 
-    ei = ExperimentInfo()
-    ei.experiment = e
-    ei.iteration = e.iterations
-    ei.selection = 'none'
+        # 4b. select k images to show user
+        samp = []
+        for i in range(k) :
+            z = map(
+                    lambda x : (random.gammavariate(basemeasures[x], 1), x), 
+                    range(len(basemeasures))
+                )
+            z.sort(reverse=True)
+            for gvar,index in z :
+                if objs[index] not in samp : # don't want any repeats in sample (just in case...)
+                    samp.append(objs[index])
+                    break
+    
+    #######################
+    #  record info in db  #
+    #######################
+    ei = ExperimentInfo(
+                experiment=e,
+                iteration=e.iterations,
+                selection='none'
+            )
     ei.save()
     for s in samp :
         ei.options.add(s)
-    #ei.save()
-
+    
     e.iterations += 1
     e.save()
-
+    
+    #########################
+    #  display to the user  #
+    #########################
     images = []
     for s in samp :
         images.append({ 'image': "/site_media/%s" % s.filename,
@@ -213,29 +224,14 @@ def do_search(request, state):
                         'finish' : "/finish/%s/" % s.filename,
                         'distance' : str(calc_distance2(s, e.target))
                         })
+
+    t = get_template('gallery.html')
+    html = t.render(Context({
+                        'image_list' : images, 
+                        'debug' : request.session['debug'], 
+                        'random' : request.session['random'] 
+                    }))
     
-    html = t.render(Context({'image_list' : images, 'debug' : request.session['debug'], 'random' : request.session['random'] }))
-    
-    return HttpResponse(html)
-
-def good_enough(request, state) :
-    try :
-        e = Experiment.objects.get(sessionid=request.session.session_key)
-    except :
-        t = get_template('bad_session.html')
-        html = t.render(Context({ 'sessionid' : request.session.session_key }))
-        return HttpResponse(html)
- 
-    e.finished = True
-
-    ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
-    ei.selection = state
-    ei.save()
-
-    e.save()
-
-    t = get_template('finished.html')
-    html = t.render(Context({'target': '/site_media/' + e.target.filename, 'image' : '/site_media/' + state, 'iterations': e.iterations}))
-    
+    print "\tdo_search(): %d seconds" % (int(time.time() - start_search))
     return HttpResponse(html)
 

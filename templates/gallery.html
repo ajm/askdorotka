@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
 <html xmlns="http://www.w3.org/1999/xhtml"> 
     <head> 
-        <title>gallery</title> 
+        <title>gallery</title>
         <style type="text/css"> 
             body {
                 font: 85%/150% Arial, Helvetica, sans-serif;
@@ -59,6 +59,7 @@
             }
         </style> 
     </head> 
+
     <body>
 
         <h2>Image Search</h2> 
@@ -73,7 +74,7 @@
             <p><img src="{{ img.image }}" alt="" /></p> 
             <p class="links"><a href="{{ img.link }}">Next</a> | <a href="{{ img.finish }}">This one!</a>
             {% if debug %}
-            <br/>{{ img.distance }}
+				<br/>{{ img.distance }}
             {% endif %}
             </p> 
         </div>

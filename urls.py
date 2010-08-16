@@ -11,7 +11,7 @@ admin.autodiscover()
 urlpatterns = patterns('',
     (r'^admin/', include(admin.site.urls)),
     (r'^site_media/(?P<path>.*)$', 'django.views.static.serve', \
-        {'document_root': os.path.join(os.path.dirname(__file__), 'images')}),
+        {'document_root': os.path.join(os.path.dirname(__file__), 'media')}),
     (r'^random/(.*)/$', random_pic),
     (r'^gallery/(.*)/(\d{1,2})/$', random_gallery),
     (r'^accounts/login/$', login),
