@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner, AnnotationFeature, AnnotationDistance
+from askdorotka.gallery.models import Annotation, AnnotationObject, AnnotationOwner, AnnotationFeature
 
 from xml.dom.minidom import parse
 import glob, os, math, copy
