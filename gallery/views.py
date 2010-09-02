@@ -141,6 +141,8 @@ def do_search(request, state):
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
         ei.selection = state
         ei.save()
+
+        print "DEBUG: %f" % calc_distance2(e.target, Annotation.objects.get(filename=state))
         
         if not request.session['random'] :
             # 5. calculate distance from all images show to all images in database
@@ -224,6 +226,8 @@ def do_search(request, state):
                         'finish' : "/finish/%s/" % s.filename,
                         'distance' : str(calc_distance2(s, e.target))
                         })
+
+    print "DEBUG: " + ' '.join(map(lambda x : "%f" % float(x['distance']), images))
 
     t = get_template('gallery.html')
     html = t.render(Context({
