@@ -59,8 +59,9 @@ class Experiment(models.Model) :
     target = models.ForeignKey(Annotation)
     number_of_images = models.PositiveIntegerField()
     finished = models.BooleanField()
-    random = models.BooleanField()
+#    random = models.BooleanField()
     iterations = models.PositiveIntegerField()
+    algorithm = models.CharField(max_length=LEN)
     # dirchlet variables
     alpha = models.PositiveIntegerField()
     count = models.PositiveIntegerField()

@@ -49,8 +49,8 @@ def start_search(request):
             )
     e.save()
     
-    # 3. initialise variables in dirchlet distribution
-    request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
+#    # 3. initialise variables in dirchlet distribution
+#    request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
     
     html = t.render(Context({'image' : '/site_media/' + target_img.filename}))
     return HttpResponse(html)
@@ -123,20 +123,31 @@ def do_search(request, state):
     except :
         return bad_session(request)
     
-    basemeasures = request.session['basemeasures']
+#    basemeasures = request.session['basemeasures']
+    basemeasures = None
 
     # this is the first time that do_search has been called
     # for the current session id
     if state == 'start' :
         e.number_of_images = int(request.GET['num'])
-        e.random = request.GET.get('random', "0") == "1"
+        e.algorithm = request.GET.get('algorithm', 'dirchlet')
         request.session['debug'] = bool(int(request.GET.get('debug', 0)))
-        request.session['random'] = bool(int(request.GET.get('random', 0)))
+ 
+        print "algorithm = %s" % e.algorithm
+
+        if e.algorithm == 'dirchlet' :
+            # 3. initialise variables in dirchlet distribution
+            request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
+        elif e.algorithm == 'auer' :
+            request.session['basemeasures'] = [ 1.0 ] * len(objs)
+        else :
+            pass
+
     # none of the images were suitable, so ignore the last
     # round
     elif state == 'ignore' :
         pass
-    # everything else, random or dirchlet...
+    # everything else, random, auer or dirchlet...
     else :
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
         ei.selection = state
@@ -144,7 +155,9 @@ def do_search(request, state):
 
         print "DEBUG: %f" % calc_distance2(e.target, Annotation.objects.get(filename=state))
         
-        if not request.session['random'] :
+        if e.algorithm != 'random' :
+            basemeasures = request.session['basemeasures']
+
             # 5. calculate distance from all images show to all images in database
             feature_cache = {}
             start_time = time.time()
@@ -167,8 +180,14 @@ def do_search(request, state):
                 # 7a. update base measures of closest images to user selected by 1
                 #     update count by 1
                 if distances[i][index] == m :
-                    basemeasures[count] += 1
-                    e.count += 1
+                    if e.algorithm == 'dirchlet' :
+                        basemeasures[count] += 1
+                        e.count += 1
+                else :
+                    if e.algorithm == 'auer' :
+                        basemeasures[count] *= 0.6
+                    pass
+
                 count += 1
             
             # 7b. renormalise basemeasures
@@ -179,11 +198,13 @@ def do_search(request, state):
     #  select images to be displayed for the next round  #
     ######################################################
     k = e.number_of_images
+    alg = e.algorithm
 
-    if request.session['random'] :
+    if alg == 'random' :
         samp = random.sample(objs, k)
     
-    else :
+    elif alg == 'dirchlet' :
+        basemeasures = request.session['basemeasures']
         # 4a. update dirchlet distribution base measures 
         #basemeasures = map(lambda x : x * e.count, basemeasures) # this just undoes line 173 (dorota knows)
         #request.session['basemeasures'] = basemeasures
@@ -200,6 +221,27 @@ def do_search(request, state):
                 if objs[index] not in samp : # don't want any repeats in sample (just in case...)
                     samp.append(objs[index])
                     break
+
+    elif alg == 'auer' :
+        basemeasures = request.session['basemeasures']
+        samp = []
+        total = float(sum(basemeasures))
+        for i in range(k) :
+            r = random.random()
+            z = 0
+            index = 0
+            while True :
+                z += (basemeasures[index] / total)
+                index += 1
+                if z >= r :
+                    if objs[index] not in samp :
+                        samp.append(objs[index])
+                        break
+                    z = 0
+                    index = 0
+
+    else :
+        pass
     
     #######################
     #  record info in db  #
@@ -233,7 +275,7 @@ def do_search(request, state):
     html = t.render(Context({
                         'image_list' : images, 
                         'debug' : request.session['debug'], 
-                        'random' : request.session['random'] 
+                        'random' : int(alg == 'random')
                     }))
     
     print "\tdo_search(): %d seconds" % (int(time.time() - start_search))

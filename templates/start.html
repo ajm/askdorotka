@@ -12,6 +12,13 @@
 		
         <p>
             <form action="/search/start" method="get">
+                Which algorithm to run:
+                <select name="algorithm">
+                    <option value="dirchlet">Dirchlet</option>
+                    <option value="auer">Auer</option>
+                    <option value="random">Random</option>
+                </select>
+                <br />
                 How many images to show each iteration:
                 <select name="num">
                     <option value="2">2</option>
@@ -24,12 +31,16 @@
                     <option value="9">9</option>
                     <option value="10">10</option>
                 </select>
+                <br />
+                <br />
                 <input type="submit" value="Let's go!">
                 <br />
                 <br />
                 <input type="checkbox" name="debug" value="1">Debug mode (show distances on hover)</input>
+                <!--
                 <br />
                 <input type="checkbox" name="random" value="1">Random mode (do not use dirchlet algorithm)</input>
+                -->
             </form>
         </p>
 		
