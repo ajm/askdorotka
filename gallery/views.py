@@ -138,7 +138,7 @@ def do_search(request, state):
         if e.algorithm == 'dirchlet' :
             # 3. initialise variables in dirchlet distribution
             request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
-        elif e.algorithm == 'auer' :
+        elif e.algorithm == 'auer' or e.algorithm == 'random' :
             request.session['basemeasures'] = [ 1.0 ] * len(objs)
         else :
             pass
@@ -200,10 +200,11 @@ def do_search(request, state):
     k = e.number_of_images
     alg = e.algorithm
 
-    if alg == 'random' :
-        samp = random.sample(objs, k)
+#    if alg == 'random' :
+#        samp = random.sample(objs, k)
     
-    elif alg == 'dirchlet' :
+#    elif alg == 'dirchlet' :
+    if alg == 'dirchlet' :
         basemeasures = request.session['basemeasures']
         # 4a. update dirchlet distribution base measures 
         #basemeasures = map(lambda x : x * e.count, basemeasures) # this just undoes line 173 (dorota knows)
@@ -222,7 +223,7 @@ def do_search(request, state):
                     samp.append(objs[index])
                     break
 
-    elif alg == 'auer' :
+    elif alg == 'auer' or alg == 'random':
         basemeasures = request.session['basemeasures']
         samp = []
         total = float(sum(basemeasures))

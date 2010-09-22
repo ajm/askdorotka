@@ -31,7 +31,8 @@ class Command(BaseCommand) :
 
         for e in experiments :
             if e.finished :
-                print "Experiment\t%s\t%d\t%d\t%s" % (e.algorithm, e.number_of_images, e.iterations, e.target.filename)
+                avg = sum(map(lambda x : calc_distance2(e.target, x), Annotation.objects.all())) / float(len(Annotation.objects.all()))
+                print "Experiment\t%s\t%d\t%d\t%s\t%f" % (e.algorithm, e.number_of_images, e.iterations, e.target.filename, avg)
                 info = ExperimentInfo.objects.filter(experiment=e)
                 data = {}
                 for i in info :
