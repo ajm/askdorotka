@@ -17,6 +17,7 @@ class Annotation(models.Model) :
     height = models.IntegerField()
     depth = models.IntegerField()
     segmented = models.BooleanField()
+    used = models.BooleanField()
 
     def __unicode__(self):
         return u'Annotation: %s %d %d' % (self.filename, self.width, self.height)

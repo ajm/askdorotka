@@ -114,6 +114,70 @@ def calc_distance(features1, features2) :
     
     return total
 
+def add_more_images(basemeasures, objs, usedimages) :
+    #unused = Annotation.objects.filter(used=False)
+    allimages = Annotation.objects.all()
+    unused = filter(lambda x : x.filename not in usedimages, allimages)
+
+    print "add_more_images: starting with %d base measures" % len(basemeasures)
+
+    if len(unused) == 0 :
+        return basemeasures,objs
+
+    try :
+        samp = random.sample(unused, len(basemeasures))
+    except ValueError :
+        samp = unused
+    
+    usedimages += map(lambda x : x.filename, samp)
+    
+    # calc distances
+    distance = {}
+    for i in objs :
+        f = featuredict(i)
+        distance[i] = map(lambda x : calc_distance(f, featuredict(x)), samp)
+    
+    # put old base measures in dict
+    old_basemeasures = {}
+    for i in range(len(objs)) :
+        old_basemeasures[objs[i]] = basemeasures[i]
+
+    # put new base measures in dict
+    new_basemeasures = {}
+    for i in objs :
+        m = min(distance[i])
+        for j in range(len(samp)) :
+            if distance[i][j] == m :
+                if samp[j] not in new_basemeasures :
+                    new_basemeasures[samp[j]] = []
+
+                new_basemeasures[samp[j]].append(old_basemeasures[i])
+    
+    # change status on new images to used
+    for i in samp :
+        i.used = True
+        i.save()
+
+    # create new basemeasures list
+    bm = []
+    #newobjs = Annotation.objects.filter(used=True)
+    newobjs = filter(lambda x : x.filename in usedimages, allimages)
+    for i in newobjs :
+        if i in old_basemeasures :
+            bm.append(old_basemeasures[i])
+            continue
+        if i in new_basemeasures :
+            bm.append(sum(new_basemeasures[i]) / float(len(new_basemeasures[i])))
+            continue
+
+        # if no images closest, use 1/n
+        bm.append(1 / float(len(newobjs)))
+
+    print "add_more_images: ending with %d base measures" % len(bm)
+    
+    return bm,newobjs,usedimages
+
+
 def do_search(request, state):
     start_search = time.time()
     objs = Annotation.objects.all()
@@ -140,13 +204,32 @@ def do_search(request, state):
             request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
         elif e.algorithm == 'auer' or e.algorithm == 'random' :
             request.session['basemeasures'] = [ 1.0 ] * len(objs)
+        elif e.algorithm == 'dirchlet-incremental' :
+            request.session['basemeasures'] = [ 1 / float(100) ] * 100
+            # select 100 random images & set their 'used' attribute to True
+#            for i in objs : # make sure the others are not being used
+#                i.used = False
+#                i.save()
+#            objs = random.sample(objs, 100)
+#            for i in objs :
+#                i.used = True
+#                i.save()
+
+            # well that was dog slow...
+            objs = random.sample(objs, 100)
+            request.session['used-images'] = map(lambda x : x.filename, objs)
+
         else :
             pass
 
     # none of the images were suitable, so ignore the last
     # round
     elif state == 'ignore' :
-        pass
+        if e.algorithm == 'dirchlet-incremental' :
+            usedimages = request.session['used-images']
+            objs = filter(lambda x : x.filename in usedimages, Annotation.objects.all())
+            print "DEBUG: using %d images" % len(objs)
+
     # everything else, random, auer or dirchlet...
     else :
         ei = ExperimentInfo.objects.get(experiment=e, iteration=e.iterations-1)
@@ -158,6 +241,12 @@ def do_search(request, state):
         if e.algorithm != 'random' :
             basemeasures = request.session['basemeasures']
 
+            if e.algorithm == 'dirchlet-incremental' :
+                #objs = Annotation.objects.filter(used=True)
+                usedimages = request.session['used-images']
+                objs = filter(lambda x : x.filename in usedimages, Annotation.objects.all())
+                print "DEBUG: using %d images" % len(objs)
+            
             # 5. calculate distance from all images show to all images in database
             feature_cache = {}
             start_time = time.time()
@@ -180,7 +269,8 @@ def do_search(request, state):
                 # 7a. update base measures of closest images to user selected by 1
                 #     update count by 1
                 if distances[i][index] == m :
-                    if e.algorithm == 'dirchlet' :
+                    #if e.algorithm == 'dirchlet' :
+                    if e.algorithm.startswith('dirchlet') :
                         basemeasures[count] += 1
                         e.count += 1
                 else :
@@ -190,9 +280,16 @@ def do_search(request, state):
 
                 count += 1
             
+            # TODO for dirchlet-incremental double the number of images being
+            # used and calculate their weights 
+
             # 7b. renormalise basemeasures
             #basemeasures = map(lambda x : x / e.count, basemeasures)
-            request.session['basemeasures'] = basemeasures   
+            if e.algorithm == 'dirchlet-incremental' :
+                request.session['basemeasures'],objs,request.session['used-images'] = \
+                    add_more_images(basemeasures, objs, usedimages)
+            else :
+                request.session['basemeasures'] = basemeasures   
     
     ######################################################
     #  select images to be displayed for the next round  #
@@ -200,11 +297,14 @@ def do_search(request, state):
     k = e.number_of_images
     alg = e.algorithm
 
+
+
 #    if alg == 'random' :
 #        samp = random.sample(objs, k)
     
 #    elif alg == 'dirchlet' :
-    if alg == 'dirchlet' :
+    #if alg == 'dirchlet' :
+    if e.algorithm.startswith('dirchlet') :
         basemeasures = request.session['basemeasures']
         # 4a. update dirchlet distribution base measures 
         #basemeasures = map(lambda x : x * e.count, basemeasures) # this just undoes line 173 (dorota knows)
