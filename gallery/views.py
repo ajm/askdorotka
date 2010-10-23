@@ -4,6 +4,10 @@ from django.template import Context
 from gallery.models import Annotation, AnnotationOwner, AnnotationObject, Experiment, ExperimentInfo, AnnotationFeature
 import random, math, time
 
+
+INITIAL_NUM_IMG = 200
+INCREMENT_NUM_IMG = 50
+
 def random_pic(request, feature) :
     all = AnnotationObject.objects.filter(name=feature)
     if len(all) == 0 :
@@ -119,18 +123,18 @@ def add_more_images(basemeasures, objs, usedimages) :
     allimages = Annotation.objects.all()
     unused = filter(lambda x : x.filename not in usedimages, allimages)
 
-    print "add_more_images: starting with %d base measures" % len(basemeasures)
+    print "add_more_images: starting with %d base measures" % INITIAL_NUM_IMG #len(basemeasures)
 
-    if len(unused) == 0 :
-        return basemeasures,objs
+#    if len(unused) == 0 :
+#        return basemeasures,objs
 
     try :
-        samp = random.sample(unused, len(basemeasures))
+        samp = random.sample(unused, INCREMENT_NUM_IMG) #len(basemeasures))
     except ValueError :
         samp = unused
     
     usedimages += map(lambda x : x.filename, samp)
-    
+
     # calc distances
     distance = {}
     for i in objs :
@@ -153,29 +157,42 @@ def add_more_images(basemeasures, objs, usedimages) :
 
                 new_basemeasures[samp[j]].append(old_basemeasures[i])
     
+    cutoff = sorted(basemeasures)[INCREMENT_NUM_IMG]
+    images_removed = 0
+
     # change status on new images to used
-    for i in samp :
-        i.used = True
-        i.save()
+#    for i in samp :
+#        i.used = True
+#        i.save()
 
     # create new basemeasures list
     bm = []
     #newobjs = Annotation.objects.filter(used=True)
     newobjs = filter(lambda x : x.filename in usedimages, allimages)
+    returnobjs = []
     for i in newobjs :
         if i in old_basemeasures :
-            bm.append(old_basemeasures[i])
+            if (old_basemeasures[i] > cutoff) or (images_removed == INCREMENT_NUM_IMG) :
+                bm.append(old_basemeasures[i])
+                returnobjs.append(i)
+            else :
+                images_removed += 1
+
             continue
         if i in new_basemeasures :
             bm.append(sum(new_basemeasures[i]) / float(len(new_basemeasures[i])))
+            returnobjs.append(i)
             continue
 
         # if no images closest, use 1/n
         bm.append(1 / float(len(newobjs)))
+        returnobjs.append(i)
+
+    returnused = map(lambda x : x.filename, returnobjs)
 
     print "add_more_images: ending with %d base measures" % len(bm)
     
-    return bm,newobjs,usedimages
+    return bm,returnobjs,returnused
 
 
 def do_search(request, state):
@@ -205,7 +222,7 @@ def do_search(request, state):
         elif e.algorithm == 'auer' or e.algorithm == 'auer-zero' or e.algorithm == 'random' :
             request.session['basemeasures'] = [ 1.0 ] * len(objs)
         elif e.algorithm == 'dirchlet-incremental' :
-            request.session['basemeasures'] = [ 1 / float(100) ] * 100
+            request.session['basemeasures'] = [ 1 / float(INITIAL_NUM_IMG) ] * INITIAL_NUM_IMG
             # select 100 random images & set their 'used' attribute to True
 #            for i in objs : # make sure the others are not being used
 #                i.used = False
@@ -216,7 +233,7 @@ def do_search(request, state):
 #                i.save()
 
             # well that was dog slow...
-            objs = random.sample(objs, 100)
+            objs = random.sample(objs, INITIAL_NUM_IMG)
             request.session['used-images'] = map(lambda x : x.filename, objs)
 
         else :

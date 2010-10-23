@@ -2,14 +2,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml"> 
     <head> 
         <title>gallery</title>
-		<link href="/site_media/common.css" rel="stylesheet" type="text/css">
+        <link href="/site_media/common.css" rel="stylesheet" type="text/css">
     </head>
-	
+    
     <body>
         <h2>Welcome to Image Search</h2> 
-		
-        <p>Blurb about search paradigm.<br />Use this search engine to find an image that looks similar to the image below.</p> 
-		
+        
+        <p>Find the image below.</p> 
+        
         <p>
             <form action="/search/start" method="get">
                 Which algorithm to run:
@@ -17,10 +17,10 @@
                     <option value="dirchlet">Dirchlet</option>
                     <option value="auer">Auer</option>
                     <option value="random">Random</option>
-                    <option value="dirchlet-incremental">Dirchlet ...a little at a time</option>
-                    <option value="dirchlet-zero">Dirchlet with zero</option>
-		    <option value="auer-zero">Auer with zero</option>
-	    </select>
+                    <option value="dirchlet-incremental">Drip-fed Dirchlet</option>
+                    <option value="dirchlet-zero">Dirchlet, zeroing unselected images</option>
+            <option value="auer-zero">Auer, zeroing unselected images</option>
+        </select>
                 <br />
                 How many images to show each iteration:
                 <select name="num">
@@ -46,10 +46,11 @@
                 -->
             </form>
         </p>
-		
-		<div class="block"> 
+        
+        <div class="block"> 
             <p><img src="{{ image }}" alt="target image" /></p>
         </div>
-		
+        
     </body> 
 </html> 
+
