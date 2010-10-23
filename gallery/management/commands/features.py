@@ -7,7 +7,8 @@ class Command(BaseCommand) :
 
     def handle(self, *args, **options) :
 
-        labels = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','food','hand','head','horse','motorbike','person','pot    tedplant','sheep','sofa','train','tvmonitor','Left','Right','Frontal','Rear','Unspecified']
+        labels = ['aeroplane','bicycle','bird','boat','bottle','bus','car','cat','chair','cow','diningtable','dog','food','hand','head','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor','Left','Right','Frontal','Rear','Unspecified']
+	labels = map(str, range(23))
 
         annotations = Annotation.objects.all()
 

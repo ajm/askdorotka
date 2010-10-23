@@ -199,10 +199,10 @@ def do_search(request, state):
  
         print "algorithm = %s" % e.algorithm
 
-        if e.algorithm == 'dirchlet' :
+        if e.algorithm == 'dirchlet' or e.algorithm == 'dirchlet-zero':
             # 3. initialise variables in dirchlet distribution
             request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
-        elif e.algorithm == 'auer' or e.algorithm == 'random' :
+        elif e.algorithm == 'auer' or e.algorithm == 'auer-zero' or e.algorithm == 'random' :
             request.session['basemeasures'] = [ 1.0 ] * len(objs)
         elif e.algorithm == 'dirchlet-incremental' :
             request.session['basemeasures'] = [ 1 / float(100) ] * 100
@@ -274,12 +274,17 @@ def do_search(request, state):
                         basemeasures[count] += 1
                         e.count += 1
                 else :
-                    if e.algorithm == 'auer' :
+                    if e.algorithm.startswith('auer') :
                         basemeasures[count] *= 0.6
                     pass
 
                 count += 1
-            
+
+            if e.algorithm.endswith('zero') :
+                files = map(lambda x : x.filename, Annotation.objects.all())
+                for i in map(lambda x: files.index(x.filename), ei.options.all()) :
+                    basemeasures[i] = 0.000001
+
             # TODO for dirchlet-incremental double the number of images being
             # used and calculate their weights 
 
@@ -323,7 +328,7 @@ def do_search(request, state):
                     samp.append(objs[index])
                     break
 
-    elif alg == 'auer' or alg == 'random':
+    elif alg.startswith('auer') or alg == 'random':
         basemeasures = request.session['basemeasures']
         samp = []
         total = float(sum(basemeasures))
@@ -376,7 +381,8 @@ def do_search(request, state):
     html = t.render(Context({
                         'image_list' : images, 
                         'debug' : request.session['debug'], 
-                        'random' : int(alg == 'random')
+                        'random' : int(alg == 'random'),
+                        'target' : '/site_media/' + e.target.filename
                     }))
     
     print "\tdo_search(): %d seconds" % (int(time.time() - start_search))
