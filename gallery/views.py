@@ -5,7 +5,7 @@ from gallery.models import Annotation, AnnotationOwner, AnnotationObject, Experi
 import random, math, time
 
 
-INITIAL_NUM_IMG = 200
+INITIAL_NUM_IMG = 300
 INCREMENT_NUM_IMG = 50
 
 def random_pic(request, feature) :

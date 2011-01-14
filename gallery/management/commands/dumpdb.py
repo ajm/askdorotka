@@ -37,9 +37,13 @@ class Command(BaseCommand) :
                 info = ExperimentInfo.objects.filter(experiment=e)
                 data = {}
                 for i in info :
-                    data[int(i.iteration)] = (\
-                        str(calc_distance2(e.target, Annotation.objects.get(filename=i.selection))), \
-                        ','.join(map(lambda x : str(calc_distance2(e.target, Annotation.objects.get(filename=x.filename))), i.options.all())))
+                    try :
+                        data[int(i.iteration)] = (\
+                            str(calc_distance2(e.target, Annotation.objects.get(filename=i.selection))), \
+                                ','.join(map(lambda x : str(calc_distance2(e.target, Annotation.objects.get(filename=x.filename))), i.options.all())))
+                    except :
+                        print map(lambda x : x.filename, i.options.all())
+                        continue
                 for i in sorted(data.keys()) :
                     print "%d\t%s" % (i, "\t".join(data[i]))
 
