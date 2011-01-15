@@ -216,13 +216,15 @@ def do_search(request, state):
  
         print "algorithm = %s" % e.algorithm
 
-        if e.algorithm == 'dirchlet' or e.algorithm == 'dirchlet-zero':
+        if e.algorithm == 'dirchlet' or e.algorithm == 'dirchlet-zero' or e.algorithm == 'pichunter':
             # 3. initialise variables in dirchlet distribution
             request.session['basemeasures'] = [ 1 / float(len(objs)) ] * len(objs)
         elif e.algorithm == 'auer' or e.algorithm == 'auer-zero' or e.algorithm == 'random' :
             request.session['basemeasures'] = [ 1.0 ] * len(objs)
-        elif e.algorithm == 'dirchlet-incremental' :
+        elif e.algorithm == 'dirchlet-incremental' or e.algorithm == 'pichunter-incremental':
             request.session['basemeasures'] = [ 1 / float(INITIAL_NUM_IMG) ] * INITIAL_NUM_IMG
+        elif e.algorithm == 'auer-incremental' :
+            request.session['basemeasures'] = [ 1.0 ] * INITIAL_NUM_IMG
             # select 100 random images & set their 'used' attribute to True
 #            for i in objs : # make sure the others are not being used
 #                i.used = False
@@ -232,17 +234,18 @@ def do_search(request, state):
 #                i.used = True
 #                i.save()
 
-            # well that was dog slow...
-            objs = random.sample(objs, INITIAL_NUM_IMG)
-            request.session['used-images'] = map(lambda x : x.filename, objs)
-
         else :
             pass
+
+            # well that was dog slow...
+        if e.algorithm.endswith('incremental') :
+            objs = random.sample(objs, INITIAL_NUM_IMG)
+            request.session['used-images'] = map(lambda x : x.filename, objs)
 
     # none of the images were suitable, so ignore the last
     # round
     elif state == 'ignore' :
-        if e.algorithm == 'dirchlet-incremental' :
+        if e.algorithm.endswith('incremental') :
             usedimages = request.session['used-images']
             objs = filter(lambda x : x.filename in usedimages, Annotation.objects.all())
             print "DEBUG: using %d images" % len(objs)
@@ -258,7 +261,7 @@ def do_search(request, state):
         if e.algorithm != 'random' :
             basemeasures = request.session['basemeasures']
 
-            if e.algorithm == 'dirchlet-incremental' :
+            if e.algorithm.endswith('incremental') :
                 #objs = Annotation.objects.filter(used=True)
                 usedimages = request.session['used-images']
                 objs = filter(lambda x : x.filename in usedimages, Annotation.objects.all())
@@ -277,41 +280,67 @@ def do_search(request, state):
                 distances[i] = map(lambda x : calc_distance(feature_cache[i], feature_cache[x]) , ei.options.all())
             print "\tdistance calculations: %d seconds" % (int(time.time() - start_time))
             
-            
-            # 6. find minimum of each images in dataset to shown images
-            index = map(lambda x : x.filename, ei.options.all()).index(ei.selection)
-            count = 0
-            for i in distances :
-                m = min(distances[i])
-                # 7a. update base measures of closest images to user selected by 1
-                #     update count by 1
-                if distances[i][index] == m :
-                    #if e.algorithm == 'dirchlet' :
-                    if e.algorithm.startswith('dirchlet') :
-                        basemeasures[count] += 1
-                        e.count += 1
+            if not e.algorithm.startswith('pichunter') :
+                # 6. find minimum of each images in dataset to shown images
+                index = map(lambda x : x.filename, ei.options.all()).index(ei.selection)
+                count = 0
+                for i in distances :
+                    m = min(distances[i])
+                    # 7a. update base measures of closest images to user selected by 1
+                    #     update count by 1
+                    if distances[i][index] == m :
+                        #if e.algorithm == 'dirchlet' :
+                        if e.algorithm.startswith('dirchlet') :
+                            basemeasures[count] += 1
+                            e.count += 1
+                    else :
+                        if e.algorithm.startswith('auer') :
+                            basemeasures[count] *= 0.6
+                        pass
+
+                    count += 1
+
+                if e.algorithm.endswith('zero') :
+                    files = map(lambda x : x.filename, Annotation.objects.all())
+                    for i in map(lambda x: files.index(x.filename), ei.options.all()) :
+                        basemeasures[i] = 0.000001
+
+                # TODO for dirchlet-incremental double the number of images being
+                # used and calculate their weights 
+
+                # 7b. renormalise basemeasures
+                #basemeasures = map(lambda x : x / e.count, basemeasures)
+#                if e.algorithm.endswith('incremental') :
+#                    request.session['basemeasures'],objs,request.session['used-images'] = \
+#                        add_more_images(basemeasures, objs, usedimages)
+#                else :
+#                    request.session['basemeasures'] = basemeasures
+                    
+            else :
+                index = map(lambda x : x.filename, ei.options.all()).index(ei.selection) # find index of selection
+                count = 0
+                for i in distances :
+                    tmp = math.exp(-math.sqrt((distances[i][index])**2)) / 0.1
+                    basemeasures[count] *= tmp
+                    count += 1
+                
+                if e.algorithm.endswith('incremental') :
+                    usedimages = request.session['used-images']
+                    files = map(lambda y : y.filename, filter(lambda x : x.filename in usedimages, Annotation.objects.all()))
                 else :
-                    if e.algorithm.startswith('auer') :
-                        basemeasures[count] *= 0.6
-                    pass
-
-                count += 1
-
-            if e.algorithm.endswith('zero') :
-                files = map(lambda x : x.filename, Annotation.objects.all())
+                    files = map(lambda x : x.filename, Annotation.objects.all())
+                
                 for i in map(lambda x: files.index(x.filename), ei.options.all()) :
-                    basemeasures[i] = 0.000001
-
-            # TODO for dirchlet-incremental double the number of images being
-            # used and calculate their weights 
-
-            # 7b. renormalise basemeasures
-            #basemeasures = map(lambda x : x / e.count, basemeasures)
-            if e.algorithm == 'dirchlet-incremental' :
+                    basemeasures[i] = 0.0
+                
+                total = float(sum(basemeasures))
+                request.session['basemeasures'] = map(lambda x : x / total, basemeasures)
+                
+            if e.algorithm.endswith('incremental') :
                 request.session['basemeasures'],objs,request.session['used-images'] = \
                     add_more_images(basemeasures, objs, usedimages)
             else :
-                request.session['basemeasures'] = basemeasures   
+                request.session['basemeasures'] = basemeasures
     
     ######################################################
     #  select images to be displayed for the next round  #
@@ -326,7 +355,7 @@ def do_search(request, state):
     
 #    elif alg == 'dirchlet' :
     #if alg == 'dirchlet' :
-    if e.algorithm.startswith('dirchlet') :
+    if alg.startswith('dirchlet') :
         basemeasures = request.session['basemeasures']
         # 4a. update dirchlet distribution base measures 
         #basemeasures = map(lambda x : x * e.count, basemeasures) # this just undoes line 173 (dorota knows)
@@ -345,7 +374,7 @@ def do_search(request, state):
                     samp.append(objs[index])
                     break
 
-    elif alg.startswith('auer') or alg == 'random':
+    elif alg.startswith('auer') or alg == 'random' or (alg.startswith('pichunter') and e.iterations == 0) :
         basemeasures = request.session['basemeasures']
         samp = []
         total = float(sum(basemeasures))
@@ -362,7 +391,15 @@ def do_search(request, state):
                         break
                     z = 0
                     index = 0
-
+                    
+    elif alg.startswith('pichunter') :
+        basemeasures = request.session['basemeasures']
+        samp = []
+        tmp = map(lambda x : (basemeasures[x], x), range(len(basemeasures)))
+        tmp.sort(reverse=True)
+        for x,y in tmp[:k] :
+            samp.append(objs[y])
+        
     else :
         pass
     
