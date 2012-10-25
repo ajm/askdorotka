@@ -6,7 +6,8 @@ if [[ $# != 1 ]]; then
     exit -1
 fi
 
-rm -f test.db
+#rm -f test.db
+rm -f annotations.db
 python manage.py validate
 python manage.py syncdb
 
@@ -17,8 +18,9 @@ python manage.py populate $1/VOC2007/Annotations/
 
 echo
 echo "copying images: this might take a while..."
-rm -rf images
-cp -r $1/VOC2007/JPEGImages images
+#rm -rf images
+#cp -r $1/VOC2007/JPEGImages images
+cp -r $1/VOC2007/JPEGImages/* media/
 #touch images/place_images_here
 
 echo

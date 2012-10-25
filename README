@@ -1,1 +1,30 @@
 python / django image search
+
+
+1. install gang
+    a. use "easy_install" install "pip", easy_install was already install on my mac (maybe a standard part of python?)
+        sudo easy_install pip
+    
+    b. use "pip" to install "django", current version (at time of writing) is 1.4.2
+        sudo pip install django
+
+2. get the askdorotka code
+    git clone git://github.com/ajm/askdorotka.git
+
+3. cd askdorotka
+
+4. download and extract the VOC 2007 dataset
+    wget http://pascallin.ecs.soton.ac.uk/challenges/VOC/voc2007/VOCtest_06-Nov-2007.tar
+    tar xf VOCtest_06-Nov-2007.tar
+
+5. initialise the database of images
+    ./initialise.sh VOCdevkit
+    this command will ask if you want to set up a superuser account to the django server, just select "no" for now, I think it is easy to do later + askdorotka was not designed to be managed, you basically have to just kill the whole database and start over...
+    go grab a coffee, this might take a while...
+
+6. start the django server
+    python manage.py runserver
+
+7. in a web browser go to http://localhost:8000/start
+
+
