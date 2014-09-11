@@ -1,7 +1,7 @@
 python / django image search
 
 
-1. install gang
+1. install django
     a. use "easy_install" install "pip", easy_install was already install on my mac (maybe a standard part of python?)
         sudo easy_install pip
     
